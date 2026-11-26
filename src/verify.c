@@ -4,6 +4,8 @@
 
 #include "demos.h"
 
+#include "utils/utils.h"
+
 #include "../libsodium/src/libsodium/include/sodium/crypto_auth_hmacsha512.h"
 #include "../libsodium/src/libsodium/include/sodium/crypto_hash_sha512.h"
 #include "../libsodium/src/libsodium/include/sodium/crypto_sign_ed25519.h"
@@ -108,6 +110,13 @@ verify_proof(const unsigned int PROOF_LEN,
   res = memcmp(current_commit, hash_2, crypto_hash_sha512_BYTES);
   free(hash_2);
   if (res != 0) return -10;
+
+  // generate_proof signs the current commit with the secret key of the first
+  // public key in the proof, and appends the signature at the end.
+  res = verify(crypto_hash_sha512_BYTES, current_commit,
+               &proof[crypto_hash_sha512_BYTES],
+               &proof[PROOF_LEN - crypto_sign_ed25519_BYTES]);
+  if (res != 0) return -11;
 
   return IDENTITIES_LEN;
 }

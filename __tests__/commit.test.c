@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "../include/demos.h"
 
@@ -187,8 +188,110 @@ main()
 
   printf("INFO: Generated ownership proof\n");
 
-  res = verify_proof(PROOF_LEN, current_commit, proof);
+  uint8_t *tampered_proof = (uint8_t *)malloc(PROOF_LEN * sizeof(uint8_t));
+  if (tampered_proof == NULL)
+  {
+    free(proof);
+    free(nonces);
+    free(public_keys);
+    free(secret_keys);
+    free(initial_commit);
+    free(current_commit);
 
+    printf("ERROR: Could not allocate tampered proof\n");
+
+    return -12;
+  }
+
+  printf("INFO: Allocated tampered proof\n");
+
+  const unsigned int SIGNATURE_START = PROOF_LEN - crypto_sign_ed25519_BYTES;
+  const int EXPECTED_DISTANCE = IDENTITIES_LEN - IDENTITY_INDEX_USED;
+  unsigned int failures = 0;
+
+  const int distance = verify_proof(PROOF_LEN, current_commit, proof);
+  if (distance == EXPECTED_DISTANCE)
+  {
+    printf("PASS: verify_proof accepts an honest proof\n");
+  }
+  else
+  {
+    printf("FAIL: verify_proof accepts an honest proof (expected %d, got "
+           "%d)\n",
+           EXPECTED_DISTANCE, distance);
+    failures++;
+  }
+
+  memcpy(tampered_proof, proof, PROOF_LEN);
+  memset(&tampered_proof[SIGNATURE_START], 0, crypto_sign_ed25519_BYTES);
+  res = verify_proof(PROOF_LEN, current_commit, tampered_proof);
+  if (res == -11)
+  {
+    printf("PASS: verify_proof rejects a zeroed signature\n");
+  }
+  else
+  {
+    printf("FAIL: verify_proof rejects a zeroed signature (expected -11, got "
+           "%d)\n",
+           res);
+    failures++;
+  }
+
+  // Flip each of the 512 signature bits in turn; every flip must be rejected.
+  unsigned int flips_not_rejected = 0;
+  for (size_t i = 0; i < crypto_sign_ed25519_BYTES * 8; i++)
+  {
+    memcpy(tampered_proof, proof, PROOF_LEN);
+    tampered_proof[SIGNATURE_START + i / 8] ^= (uint8_t)(1U << (i % 8));
+    res = verify_proof(PROOF_LEN, current_commit, tampered_proof);
+    if (res != -11) flips_not_rejected++;
+  }
+  if (flips_not_rejected == 0)
+  {
+    printf("PASS: verify_proof rejects a flipped signature bit\n");
+  }
+  else
+  {
+    printf("FAIL: verify_proof rejects a flipped signature bit (%u of %u "
+           "flips not rejected)\n",
+           flips_not_rejected, crypto_sign_ed25519_BYTES * 8);
+    failures++;
+  }
+
+  // A valid signature over the same commit, made by identity 0 instead of
+  // the identity whose public key opens the proof.
+  memcpy(tampered_proof, proof, PROOF_LEN);
+  res = sign(crypto_hash_sha512_BYTES, current_commit, secret_keys,
+             &tampered_proof[SIGNATURE_START]);
+  if (res != 0)
+  {
+    free(tampered_proof);
+    free(proof);
+    free(nonces);
+    free(public_keys);
+    free(secret_keys);
+    free(initial_commit);
+    free(current_commit);
+
+    printf("ERROR: Could not sign with a different key\n");
+
+    return -13;
+  }
+
+  res = verify_proof(PROOF_LEN, current_commit, tampered_proof);
+  if (res == -11)
+  {
+    printf("PASS: verify_proof rejects a signature by a different key\n");
+  }
+  else
+  {
+    printf("FAIL: verify_proof rejects a signature by a different key "
+           "(expected -11, got %d)\n",
+           res);
+    failures++;
+  }
+
+  free(tampered_proof);
   free(proof);
   free(nonces);
   free(public_keys);
@@ -196,14 +299,14 @@ main()
   free(initial_commit);
   free(current_commit);
 
-  if (res < 0)
+  if (failures > 0)
   {
-    printf("ERROR: Proof verification is wrong %d\n", res);
+    printf("ERROR: %u verify_proof check(s) failed\n", failures);
 
-    return -15 + res;
+    return -14;
   }
 
-  printf("SUCCESS. Identity's distance from commit was %i\n", res);
+  printf("SUCCESS. Identity's distance from commit was %i\n", distance);
 
   return 0;
 }
