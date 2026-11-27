@@ -2,6 +2,8 @@
 
 ## November 27, 2026
 
+- The native voting library vendors libsodium 1.0.22 and builds its Argon2 NEON implementation on ARM64. The ledger verifier resolves libsodium from the host distribution in its separate build. [Upstream release](https://github.com/jedisct1/libsodium/releases/tag/1.0.22)
+
 - The native transfer verifier reports an unavailable signature provider as a local failure (exit 2). Validators can retry the original request when the provider recovers. An invalid signature still returns exit 1. [Verifier contract](ledger/README.md)
 
 - Fixed signature verification for a voting commitment proof. A proof now has to authenticate the current commitment. The original voting API uses Ed25519. [Fix](https://github.com/ondemos/libdemos/commit/e116d43)

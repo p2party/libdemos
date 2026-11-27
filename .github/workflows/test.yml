@@ -2,7 +2,7 @@ name: test
 
 on:
   push:
-    branches: [master]
+    branches: [master, 'research/dependencies/**']
 
 permissions:
   contents: read
@@ -19,7 +19,7 @@ jobs:
       - name: Configure native tests
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
       - name: Build native tests
-        run: cmake --build build --parallel 2 --target commit_test shamir_test crypto_test merkle_test
+        run: cmake --build build --parallel 2 --target demos demos_static commit_test shamir_test crypto_test merkle_test
       - name: Run native tests
         run: |
           for suite in commit shamir crypto merkle; do

@@ -78,6 +78,7 @@ add_library(demos SHARED
   libsodium/src/libsodium/crypto_pwhash/argon2/argon2-encoding.c
   libsodium/src/libsodium/crypto_pwhash/argon2/blake2b-long.c
   libsodium/src/libsodium/crypto_pwhash/argon2/argon2-fill-block-ref.c
+  libsodium/src/libsodium/crypto_pwhash/argon2/argon2-fill-block-neon.c
   libsodium/src/libsodium/crypto_pwhash/argon2/pwhash_argon2id.c
 )
 add_library(demos_test SHARED 
@@ -124,6 +125,7 @@ add_library(demos_test SHARED
   libsodium/src/libsodium/crypto_pwhash/argon2/argon2-encoding.c
   libsodium/src/libsodium/crypto_pwhash/argon2/blake2b-long.c
   libsodium/src/libsodium/crypto_pwhash/argon2/argon2-fill-block-ref.c
+  libsodium/src/libsodium/crypto_pwhash/argon2/argon2-fill-block-neon.c
   libsodium/src/libsodium/crypto_pwhash/argon2/pwhash_argon2id.c
 )
 add_library(demos_static STATIC 
@@ -170,6 +172,7 @@ add_library(demos_static STATIC
   libsodium/src/libsodium/crypto_pwhash/argon2/argon2-encoding.c
   libsodium/src/libsodium/crypto_pwhash/argon2/blake2b-long.c
   libsodium/src/libsodium/crypto_pwhash/argon2/argon2-fill-block-ref.c
+  libsodium/src/libsodium/crypto_pwhash/argon2/argon2-fill-block-neon.c
   libsodium/src/libsodium/crypto_pwhash/argon2/pwhash_argon2id.c
 )
 add_library(demos_static_test STATIC 
@@ -216,6 +219,7 @@ add_library(demos_static_test STATIC
   libsodium/src/libsodium/crypto_pwhash/argon2/argon2-encoding.c
   libsodium/src/libsodium/crypto_pwhash/argon2/blake2b-long.c
   libsodium/src/libsodium/crypto_pwhash/argon2/argon2-fill-block-ref.c
+  libsodium/src/libsodium/crypto_pwhash/argon2/argon2-fill-block-neon.c
   libsodium/src/libsodium/crypto_pwhash/argon2/pwhash_argon2id.c
 )
 
