@@ -1,70 +1,141 @@
-name: "tagged-release"
+name: Native library release
 
 on:
   push:
-    tags:
-      - "v*"
+    branches: ['research/releases/**']
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
 
 jobs:
-  tagged-release:
-    name: Tagged Release for ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-
+  package:
+    name: Build and test ${{ matrix.target }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 25
     strategy:
+      fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
-            artifact_name: libdemos.dylib
-            asset_name: libdemos-linux-amd64
-          - os: windows-latest
-            artifact_name: libdemos.exe
-            asset_name: libdemos-windows-amd64
-          - os: macos-latest
-            artifact_name: libdemos.dylib
-            asset_name: libdemos-macos-amd64
-
+          - { runner: ubuntu-22.04, target: linux-x86_64 }
+          - { runner: macos-15-intel, target: macos-x86_64 }
+          - { runner: macos-15, target: macos-arm64 }
+          - { runner: windows-2025, target: windows-x86_64 }
     steps:
-      - name: Checkout
-        uses: actions/checkout@master
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          submodules: 'true'
-
-      - name: Cache LLVM and Clang
-        id: cache-llvm
-        uses: actions/cache@v4
+          submodules: true
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
+          python-version: '3.12'
+      - name: Build the libraries and run the packaged consumers
+        env:
+          TARGET: ${{ matrix.target }}
+        run: |
+          if [[ "$RUNNER_OS" == Windows ]]; then
+            export CC=gcc CXX=g++
+            [[ "$(gcc -dumpmachine)" == x86_64-w64-mingw32 ]]
+          fi
+          python scripts/build-native-package.py dist
+          archives=(dist/*-"$TARGET".tar.gz)
+          [[ ${#archives[@]} == 1 && -f "${archives[0]}" ]]
+          python scripts/check-native-package.py "${archives[0]}"
+      - name: Retain the tested archive and checksum
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: native-package-${{ matrix.target }}
           path: |
-            C:/Program Files/LLVM
-            ./llvm
-          key: llvm-13
+            dist/*.tar.gz
+            dist/*.tar.gz.sha256
+          if-no-files-found: error
+          overwrite: true
 
-      - name: Install LLVM and Clang
-        uses: KyleMayes/install-llvm-action@v2.0.3
+  assemble:
+    name: Verify release archives and assemble SHA256SUMS
+    needs: package
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    outputs:
+      version: ${{ steps.manifest.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          version: "13"
-          cached: ${{ steps.cache-llvm.outputs.cache-hit }}
-
-      - name: CMake start
-        run: cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -B build
-
-      - name: CMake build
-        run: cmake --build build
-
-      - name: Setup
-        run: NODE_ENV="production" node scripts/emscripten.js
-
-      - name: Upload binaries to release
-        uses: svenstaro/upload-release-action@v2
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
         with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: build/${{ matrix.artifact_name }}
-          asset_name: ${{ matrix.asset_name }}
-          tag: ${{ github.ref }}
-
-      - name: Upload wasm to release
-        uses: svenstaro/upload-release-action@v2
+          pattern: native-package-*
+          path: packages
+      - name: Verify the revision, target and checksum for every archive
+        id: manifest
+        run: |
+          version=$(sed -nE 's/^project\(demos VERSION ([0-9.]+)\)$/\1/p' CMakeLists.txt)
+          component='(0|[1-9][0-9]*)'
+          [[ "$version" =~ ^${component}\.${component}\.${component}$ ]]
+          revision=$(git rev-parse HEAD)
+          sodium=$(git rev-parse HEAD:libsodium)
+          mkdir release
+          for target in linux-x86_64 macos-arm64 macos-x86_64 windows-x86_64; do
+            name="libdemos-$version-$target"
+            archive="$name.tar.gz"
+            dir="packages/native-package-$target"
+            (cd "$dir" && sha256sum "$archive") | diff - <(tr -d '\r' < "$dir/$archive.sha256")
+            info=$(tar -xOzf "$dir/$archive" "$name/BUILDINFO.txt" | tr -d '\r')
+            for line in "libdemos $version" "source $revision" "libsodium $sodium" "target $target"; do
+              grep -Fxq "$line" <<< "$info"
+            done
+            cp "$dir/$archive" release/
+          done
+          (cd release && sha256sum *.tar.gz > SHA256SUMS)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: build/wasm/libdemos.js
-          asset_name: libdemos.js 
-          tag: ${{ github.ref }}
+          name: native-release-assets
+          path: release/
+          if-no-files-found: error
+          overwrite: true
+
+  publish:
+    name: Publish the tagged native release
+    if: github.event_name == 'push' && github.ref_type == 'tag' && !github.event.deleted
+    needs: assemble
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    concurrency: native-release-${{ github.ref }}
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          name: native-release-assets
+          path: release
+      - name: Verify the live tag and publish the four archives
+        env:
+          VERSION: ${{ needs.assemble.outputs.version }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          [[ "$GITHUB_REF_NAME" == "v$VERSION" ]]
+          revision=$(git rev-parse HEAD)
+          [[ "$(git rev-parse "$GITHUB_SHA^{commit}")" == "$revision" ]]
+          git fetch --no-tags origin "refs/tags/$GITHUB_REF_NAME"
+          [[ "$(git rev-parse 'FETCH_HEAD^{commit}')" == "$revision" ]]
+          cd release
+          sha256sum --strict --check SHA256SUMS
+          cat > "$RUNNER_TEMP/native-release-notes.md" <<EOF
+          This release includes shared and static C libraries for Linux x86-64, macOS Intel x86-64, macOS ARM64, and Windows x86-64 (MinGW). Each platform ran the native test suites and compiled and executed consumers against both packaged libraries.
+
+          Download the archive for your platform and SHA256SUMS to verify its SHA-256 digest. Each archive records its libdemos and libsodium source revisions.
+
+          [Changelog]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/blob/$GITHUB_REF_NAME/CHANGELOG.md) · [Browser and Node.js WebAssembly binding](https://github.com/p2party/libdemos-ts)
+          EOF
+          # gh stages the assets in a draft and refuses to replace a published release.
+          gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --verify-tag \
+            --target "$revision" --title "libdemos $VERSION" --notes-file "$RUNNER_TEMP/native-release-notes.md" *.tar.gz SHA256SUMS
