@@ -33,13 +33,13 @@ get_merkle_proof(
 
   unsigned int element_of_interest = index;
 
-  uint8_t(*hashes)[crypto_hash_sha512_BYTES]
+  uint8_t (*hashes)[crypto_hash_sha512_BYTES]
       = malloc(sizeof(uint8_t[LEAVES_LEN][crypto_hash_sha512_BYTES]));
   if (hashes == NULL) return -2;
 
   memcpy(hashes, leaves_hashed, LEAVES_LEN * crypto_hash_sha512_BYTES);
 
-  uint8_t(*concat_hashes)[crypto_hash_sha512_BYTES]
+  uint8_t (*concat_hashes)[crypto_hash_sha512_BYTES]
       = malloc(sizeof(uint8_t[2][crypto_hash_sha512_BYTES]));
   if (concat_hashes == NULL)
   {
