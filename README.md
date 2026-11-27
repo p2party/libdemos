@@ -10,7 +10,7 @@ The code has not undergone any external security audits yet. Use at your own ris
 
 The optional C17 ledger library verifies native transfers for P2Party Testnet 1. Owners can choose ML-DSA-65 or the stateless hash-based SLH-DSA-SHA2-192s. A transfer signs the network ID, input unit, weight, expiry and full recipient commitment. The node atomically consumes that input and records a receipt. Existing voting and secret-sharing APIs retain their original formats.
 
-Build the ledger module with CMake, OpenSSL 3.5 or newer and libsodium. The Linux packaging job tests both suites and publishes a statically linked verifier with its SHA-256 and source revision. The public development network uses valueless test units. [Verifier format and build instructions](ledger/README.md) · [Testnet access and grants](https://github.com/p2party/p2party-server/tree/master/deploy/testnet) · [Release changes and roadmap](CHANGELOG.md)
+Build the ledger module with CMake, OpenSSL 3.5 or newer and libsodium. The Linux packaging job tests both suites and publishes a statically linked verifier with its SHA-256 and source revision. The public development network uses valueless test units. [Verifier format and build instructions](ledger/README.md) · [Testnet access and grants](https://github.com/p2party/p2party-js/blob/master/docs/testnet-1.md) · [Release changes and roadmap](CHANGELOG.md)
 
 ## Introduction
 
