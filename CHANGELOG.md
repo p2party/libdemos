@@ -1,5 +1,9 @@
 # Release changes
 
+## Native release 0.2.8
+
+The voting library release packages static and shared libraries for Linux x86-64, macOS x86-64 and ARM64, and Windows x86-64 with MinGW. The release checks compile and run an external C program against each packaged library after verifying the archive's SHA-256. Source and libsodium revisions are included in every archive. Browser and Node users can obtain the maintained WebAssembly binding separately. [Native release](https://github.com/p2party/libdemos/releases/tag/v0.2.8) · [WebAssembly binding](https://github.com/p2party/libdemos-ts)
+
 ## November 27, 2026
 
 - The native voting library vendors libsodium 1.0.22 and builds its Argon2 NEON implementation on ARM64. The ledger verifier resolves libsodium from the host distribution in its separate build. [Upstream release](https://github.com/jedisct1/libsodium/releases/tag/1.0.22)

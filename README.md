@@ -2,7 +2,7 @@
 
 This repository provides cryptographic tools for digital democracies.
 
-Other than the compilation as a static or shared lib, it also compiles for WASM and use in the browser. 
+This repository builds the native C voting library as a shared or static library. The TypeScript binding maintains the browser and Node WebAssembly build. [WebAssembly bindings](https://github.com/p2party/libdemos-ts)
 
 The code has not undergone any external security audits yet. Use at your own risk.
 
@@ -37,19 +37,35 @@ Under the hood it uses the libsodium randombytes method to generate random coeff
 
 The [utils](src/utils) directory contains helper methods such as cryptographic random slicing of arrays etc.
 
-## Getting Started
+## Using a native release
 
-To get started you need to have CMake, LLVM/Clang and [emsdk](https://github.com/emscripten-core/emsdk) installed on your machine and in your path.
-You also need to clone this repository and [libsodium](https://github.com/jedisct1/libsodium) as a submodule in order to be able to compile the library
+Version 0.2.8 provides shared and static libraries for Linux x86-64, macOS Intel, macOS Apple Silicon and Windows x86-64 with MinGW. Each archive includes the C header, the required libsodium headers, licenses and the exact source revisions in `BUILDINFO.txt`. The Windows archive also contains a DLL import library. [Release assets and SHA-256 checksums](https://github.com/p2party/libdemos/releases/tag/v0.2.8)
 
+Download the archive for your platform and `SHA256SUMS` from the same release. On macOS or Linux, compare the archive's digest with the line for that filename. For example, on Linux run
+
+```sh
+sha256sum libdemos-0.2.8-linux-x86_64.tar.gz
+tar -xzf libdemos-0.2.8-linux-x86_64.tar.gz
+cc -std=c11 -Ilibdemos-0.2.8-linux-x86_64/include consumer.c \
+  libdemos-0.2.8-linux-x86_64/lib/libdemos_static.a -lm -o consumer
+./consumer
 ```
-git clone https://github.com/p2party/libdemos.git
+
+On macOS, `shasum -a 256` prints the digest. On Windows, use `Get-FileHash -Algorithm SHA256`. When statically linking with MinGW, compile the consumer with `-DDEMOS_PUBLIC=`. For dynamic linking on Windows, link to `libdemos.dll.a` and place `libdemos.dll` beside the executable or in its DLL search path. The consumer source calls SHA-512, generates a signing key, verifies a signature and rejects a changed signature. [Consumer example](scripts/native-consumer.c)
+
+## Building from source
+
+A recursive checkout includes the pinned libsodium source. To build and run the native C tests on macOS or Linux, install CMake 3.28.1 or later and a C toolchain, then run
+
+```sh
+git clone --recurse-submodules https://github.com/p2party/libdemos.git
 cd libdemos
-git submodule update --init --recursive
-source ./build.sh
+./build.sh
 ```
 
-Linux CI runs four native test executables covering commitments, Shamir sharing, cryptography and Merkle proofs. The ledger module also has its own transfer and command-line tests. [Native tests](__tests__) · [Ledger tests](ledger/transfer_test.c)
+The release build also requires Ninja and Python 3.12 or later. From a clean checkout, run `python3 scripts/build-native-package.py dist`. Verify both packaged libraries from a separate consumer directory with `python3 scripts/check-native-package.py dist/*.tar.gz`. To check a downloaded release archive, pass `--checksums SHA256SUMS` to that same command. MinGW builds use GCC and G++. [Release workflow](.github/workflows/release.yml)
+
+The four native suites cover commitments, Shamir sharing, cryptography and Merkle proofs. The optional ledger module has a separate verifier, release workflow and tests. [Native tests](__tests__) · [Ledger tests](ledger/transfer_test.c)
 
 A local coverage-guided fuzz test compiles the transfer verifier with AddressSanitizer and UndefinedBehaviorSanitizer and exercises both signature suites. [Run the fuzzer](ledger/README.md#fuzz-the-transfer-verifier)
 

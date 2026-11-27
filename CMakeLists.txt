@@ -1,19 +1,12 @@
 cmake_minimum_required(VERSION 3.28.1 FATAL_ERROR)
 
 # Project Name
-project(demos VERSION 0.2.7)
+project(demos VERSION 0.2.8)
 
 # set(CMAKE_C_STANDARD 23)
 
 if(POLICY CMP0077)
     cmake_policy(SET CMP0077 NEW)
-endif()
-
-if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-  set(CMAKE_PREFIX_PATH "/opt/homebrew")
-  set(CMAKE_EXE_LINKER_FLAGS "-L/opt/homebrew/lib " CACHE STRING "" FORCE)
-  set(CMAKE_C_FLAGS   "-I/opt/homebrew/include " CACHE STRING "" FORCE )
-  set(CMAKE_CXX_FLAGS "-I/opt/homebrew/include " CACHE STRING "" FORCE)
 endif()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -22,8 +15,7 @@ file(GLOB_RECURSE ALL_SOURCE_FILES src/**/*.cpp src/**/*.hpp src/**/*.c src/**/*
 
 add_custom_target(
     clangformat
-    ALL
-    COMMAND ${CMAKE_PREFIX_PATH}/bin/clang-format 
+    COMMAND clang-format
     -style=file
     -i
     ${ALL_SOURCE_FILES}
