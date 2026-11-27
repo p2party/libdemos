@@ -25,3 +25,18 @@ if(BUILD_TESTING)
   add_test(NAME ledger_cli_empty_input COMMAND demos-ledger-verify)
   set_tests_properties(ledger_cli_empty_input PROPERTIES WILL_FAIL TRUE)
 endif()
+
+option(DEMOS_LEDGER_FUZZ "Build the Clang libFuzzer transfer test" OFF)
+if(DEMOS_LEDGER_FUZZ)
+  if(NOT CMAKE_C_COMPILER_ID MATCHES "Clang")
+    message(FATAL_ERROR "The fuzz target requires Clang with libFuzzer")
+  endif()
+  # Compile the verifier itself with coverage and sanitizers for this target.
+  add_executable(ledger_transfer_fuzz fuzz/transfer_fuzz.c transfer.c)
+  target_compile_features(ledger_transfer_fuzz PRIVATE c_std_17)
+  target_include_directories(ledger_transfer_fuzz PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../include)
+  target_link_libraries(ledger_transfer_fuzz PRIVATE OpenSSL::Crypto PkgConfig::Sodium)
+  target_compile_options(ledger_transfer_fuzz PRIVATE -fsanitize=fuzzer,address,undefined
+                         -fno-sanitize-recover=undefined -fno-omit-frame-pointer)
+  target_link_options(ledger_transfer_fuzz PRIVATE -fsanitize=fuzzer,address,undefined)
+endif()

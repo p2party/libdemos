@@ -1,0 +1,36 @@
+name: Native transfer fuzzing
+on:
+  push:
+    branches: [master]
+    paths: ['ledger/**', 'include/demos_ledger.h', '.github/workflows/ledger-fuzz.yml']
+  pull_request:
+    paths: ['ledger/**', 'include/demos_ledger.h', '.github/workflows/ledger-fuzz.yml']
+  schedule:
+    - cron: '17 4 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fuzz:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install development libraries
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y --no-install-recommends clang libclang-rt-dev libssl-dev libsodium-dev pkg-config
+      - name: Compile the verifier and seed both signature suites
+        run: |
+          cmake -S ledger -B build/fuzz -DCMAKE_C_COMPILER=clang -DCMAKE_BUILD_TYPE=RelWithDebInfo -DDEMOS_LEDGER_FUZZ=ON
+          cmake --build build/fuzz --parallel 2 --target ledger_transfer_fuzz demos-ledger-fixture demos-ledger-verify ledger_transfer_test
+          build/fuzz/ledger_transfer_test
+          build/fuzz/demos-ledger-fixture | python3 ledger/fuzz/seed_corpus.py build/fuzz/corpus build/fuzz/demos-ledger-verify
+      - name: Fuzz transfers under ASan and UBSan
+        env:
+          BUDGET: ${{ github.event_name == 'schedule' && '300' || '45' }}
+        run: build/fuzz/ledger_transfer_fuzz -max_len=16646 -max_total_time="$BUDGET" build/fuzz/corpus
