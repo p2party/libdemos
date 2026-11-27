@@ -1,4 +1,4 @@
-# Welcome to @ondemos/libdemos contributing guide <!-- omit in toc -->
+# Welcome to p2party/libdemos contributing guide <!-- omit in toc -->
 
 Thank you for investing your time in contributing to our project! Any contribution you make will be reflected on the project's GitHub homepage :sparkles:.
 
@@ -21,9 +21,8 @@ To get started you need to have [emsdk](https://github.com/emscripten-core/emsdk
 You also need to clone this repository and [libsodium](https://github.com/jedisct1/libsodium) as a submodule in order to be able to compile the library
 
 ```
-git clone git@github.com:ondemos/libdemos.git ondemos
-cd ondemos 
-git submodule update --init --recursive
+git clone --recurse-submodules https://github.com/p2party/libdemos.git
+cd libdemos
 source ./build.sh
 ```
 
@@ -33,7 +32,7 @@ The build script will compile the files in the [__tests__](__tests_) folder. For
 
 #### Create a new issue
 
-If you spot a problem with the code, [search if an issue already exists](https://github.com/ondemos/libdemos/issues). If a related issue doesn't exist,
+If you spot a problem with the code, [search if an issue already exists](https://github.com/p2party/libdemos/issues). If a related issue doesn't exist,
 you can open a new issue by pasting the relevant output of your terminal.
 
 #### Solve an issue

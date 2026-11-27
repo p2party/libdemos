@@ -43,7 +43,7 @@ To get started you need to have CMake, LLVM/Clang and [emsdk](https://github.com
 You also need to clone this repository and [libsodium](https://github.com/jedisct1/libsodium) as a submodule in order to be able to compile the library
 
 ```
-git clone https://github.com/ondemos/libdemos.git
+git clone https://github.com/p2party/libdemos.git
 cd libdemos
 git submodule update --init --recursive
 source ./build.sh
