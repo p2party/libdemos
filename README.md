@@ -6,6 +6,12 @@ Other than the compilation as a static or shared lib, it also compiles for WASM 
 
 The code has not undergone any external security audits yet. Use at your own risk.
 
+## Native P2Party testnet transfers
+
+The optional C17 ledger library verifies native transfers for P2Party Testnet 1. Owners can choose ML-DSA-65 or the stateless hash-based SLH-DSA-SHA2-192s. A transfer signs the network ID, input unit, weight, expiry and full recipient commitment. The node atomically consumes that input and records a receipt. Existing voting and secret-sharing APIs retain their original formats.
+
+Build the ledger module with CMake, OpenSSL 3.5 or newer and libsodium. The Linux packaging job tests both suites and publishes a statically linked verifier with its SHA-256 and source revision. The public development network uses valueless test units. [Verifier format and build instructions](ledger/README.md) · [Testnet access and grants](https://github.com/p2party/p2party-server/tree/master/deploy/testnet) · [Release changes and roadmap](CHANGELOG.md)
+
 ## Introduction
 
 This library relies heavily on Ed25519 public-secret key pairs and their related operations, which are provided by [libsodium](https://github.com/jedisct1/libsodium), which is a battle-tested project.
@@ -37,13 +43,13 @@ To get started you need to have CMake, LLVM/Clang and [emsdk](https://github.com
 You also need to clone this repository and [libsodium](https://github.com/jedisct1/libsodium) as a submodule in order to be able to compile the library
 
 ```
-git clone git@github.com:ondemos/core.git ondemos
-cd ondemos 
+git clone https://github.com/ondemos/libdemos.git
+cd libdemos
 git submodule update --init --recursive
 source ./build.sh
 ```
 
-The build script will also compile and run the files in the [__tests__](__tests__) folder. For now this only tests the private liquid voting functionality.
+Linux CI runs four native test executables covering commitments, Shamir sharing, cryptography and Merkle proofs. The ledger module also has its own transfer and command-line tests. [Native tests](__tests__) · [Ledger tests](ledger/transfer_test.c)
 
 ## License
 
