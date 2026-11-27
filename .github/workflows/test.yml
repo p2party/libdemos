@@ -1,38 +1,27 @@
-name: "test"
+name: test
 
 on:
   push:
-    branches:
-      - "master"
+    branches: [master]
+
+permissions:
+  contents: read
 
 jobs:
   test:
-    name: "Tests"
-    runs-on: "ubuntu-latest"
-
+    name: Tests
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@master
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          submodules: 'true'
-
-      - name: Cache LLVM and Clang
-        id: cache-llvm
-        uses: actions/cache@v4
-        with:
-          path: |
-            C:/Program Files/LLVM
-            ./llvm
-          key: llvm-13
-
-      - name: Install LLVM and Clang
-        uses: KyleMayes/install-llvm-action@v2.0.3
-        with:
-          version: "13"
-          cached: ${{ steps.cache-llvm.outputs.cache-hit }}
-
-      - name: CMake start
-        run: cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -B build
-
-      -name: CMake build
-        run: cmake --build build
+          submodules: true
+      - name: Configure native tests
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
+      - name: Build native tests
+        run: cmake --build build --parallel 2 --target commit_test shamir_test crypto_test merkle_test
+      - name: Run native tests
+        run: |
+          for suite in commit shamir crypto merkle; do
+            "./build/__tests__/${suite}_test"
+          done
