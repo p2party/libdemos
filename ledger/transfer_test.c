@@ -17,6 +17,58 @@ reject(const demos_ledger_policy *policy, uint64_t height, const demos_ledger_un
   CHECK(state.owner.suite == in->owner.suite && memcmp(state.owner.commitment, in->owner.commitment, 64) == 0);
 }
 
+static void
+test_extended_suites(demos_ledger_policy original, demos_ledger_unit state,
+                     EVP_PKEY *legacy_key, const uint8_t legacy_nonce[32])
+{
+  const uint8_t suites[] = {DEMOS_LEDGER_ML_DSA_65, DEMOS_LEDGER_ML_DSA_87,
+                            DEMOS_LEDGER_SLH_DSA_SHAKE_256S, DEMOS_LEDGER_ML_DSA_65};
+  const unsigned bits[] = {DEMOS_LEDGER_ALLOW_ML_DSA_65, DEMOS_LEDGER_ALLOW_ML_DSA_87,
+                           DEMOS_LEDGER_ALLOW_SLH_DSA_SHAKE_256S, DEMOS_LEDGER_ALLOW_ML_DSA_65};
+  const size_t sizes[] = {5505, 7463, 30100};
+  EVP_PKEY *keys[] = {legacy_key, EVP_PKEY_Q_keygen(NULL, NULL, "ML-DSA-87"),
+                      EVP_PKEY_Q_keygen(NULL, NULL, "SLH-DSA-SHAKE-256s"), legacy_key};
+  CHECK(keys[1] && keys[2]);
+  uint8_t nonces[4][32] = {{0}, {4}, {5}, {6}};
+  memcpy(nonces[0], legacy_nonce, 32);
+  demos_ledger_owner destination;
+  CHECK(!demos_ledger_make_owner(suites[1], keys[0], nonces[1], &destination));
+  CHECK(!demos_ledger_make_owner(suites[2], keys[1], nonces[2], &destination));
+  for (size_t i = 0; i < 3; ++i) {
+    const size_t n = demos_ledger_transfer_size(suites[i]);
+    CHECK(n == sizes[i]);
+    uint8_t *wire = malloc(n + 1);
+    CHECK(wire);
+    CHECK(demos_ledger_make_owner(suites[i + 1], keys[i + 1], nonces[i + 1], &destination));
+    /* The network allows just this input suite to spend into this output suite. */
+    demos_ledger_policy policy = original;
+    policy.spend_suites = bits[i];
+    policy.receive_suites = bits[i + 1];
+    CHECK(!demos_ledger_sign_transfer(&original, &state, &destination, 0, keys[i], nonces[i], wire, n));
+    CHECK(!demos_ledger_sign_transfer(&policy, &state, &destination, 0, keys[i], nonces[i], wire, n - 1));
+    CHECK(demos_ledger_sign_transfer(&policy, &state, &destination, 0, keys[i], nonces[i], wire, n));
+    reject(&original, 1, &state, wire, n);
+    demos_ledger_policy wrong = policy;
+    wrong.spend_suites = bits[i + 1];
+    reject(&wrong, 1, &state, wire, n);
+    wrong = policy;
+    wrong.receive_suites = bits[i];
+    reject(&wrong, 1, &state, wire, n);
+    reject(&policy, 1, &state, wire, n - 1);
+    wire[n] = 0;
+    reject(&policy, 1, &state, wire, n + 1);
+    wire[n - 1] ^= 1;
+    reject(&policy, 1, &state, wire, n);
+    wire[n - 1] ^= 1;
+    CHECK(demos_ledger_apply_transfer(&policy, 1, &state, wire, n));
+    CHECK(state.weight == 8 && state.owner.suite == suites[i + 1]);
+    CHECK(memcmp(state.owner.commitment, destination.commitment, 64) == 0);
+    free(wire);
+  }
+  EVP_PKEY_free(keys[1]);
+  EVP_PKEY_free(keys[2]);
+}
+
 int
 main(void)
 {
@@ -89,6 +141,7 @@ main(void)
   CHECK(state.weight == 8 && state.owner.suite == carol.suite && memcmp(state.owner.commitment, carol.commitment, 64) == 0);
   reject(&policy, 420, &state, second, slh_n);
 
+  test_extended_suites(policy, state, ml, n3);
   free(first);
   free(second);
   EVP_PKEY_free(ml);

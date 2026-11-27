@@ -39,6 +39,16 @@ if(BUILD_TESTING)
   set_tests_properties(ledger_cli_version PROPERTIES PASS_REGULAR_EXPRESSION "demos-ledger-verify/1")
   add_test(NAME ledger_cli_empty_input COMMAND demos-ledger-verify)
   set_tests_properties(ledger_cli_empty_input PROPERTIES WILL_FAIL TRUE)
+  find_program(LEDGER_NODE_EXECUTABLE node)
+  if(LEDGER_NODE_EXECUTABLE)
+    execute_process(COMMAND ${LEDGER_NODE_EXECUTABLE} -p process.versions.node
+                    OUTPUT_VARIABLE LEDGER_NODE_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
+    if(LEDGER_NODE_VERSION VERSION_GREATER_EQUAL "26.13.1")
+      add_test(NAME ledger_transfer_node_interop COMMAND ${LEDGER_NODE_EXECUTABLE}
+               ${CMAKE_CURRENT_SOURCE_DIR}/transfer_interop_test.mjs
+               $<TARGET_FILE:demos-ledger-verify> $<TARGET_FILE:demos-ledger-fixture>)
+    endif()
+  endif()
 endif()
 
 option(DEMOS_LEDGER_FUZZ "Build the native ledger libFuzzer tests" OFF)

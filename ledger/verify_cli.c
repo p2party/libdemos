@@ -1,5 +1,6 @@
 #include "demos_ledger.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 static uint64_t
@@ -22,25 +23,31 @@ main(int argc, char **argv)
     return 0;
   }
   if (argc != 1) return 2;
-  uint8_t prefix[183], wire[16516 + 1], reply[193];
+  uint8_t prefix[183], reply[193];
   if (fread(prefix, 1, sizeof prefix, stdin) != sizeof prefix
       || memcmp(prefix, "DLV1", 4) != 0)
     return 1;
-  size_t n = fread(wire, 1, sizeof wire, stdin);
-  if (ferror(stdin)) return 2;
-  if (!feof(stdin) || n == sizeof wire) return 1;
   demos_ledger_policy policy
       = { .spend_suites = prefix[36], .receive_suites = prefix[37] };
-  if (policy.spend_suites == 0 || policy.spend_suites > 3
-      || policy.receive_suites == 0 || policy.receive_suites > 3)
+  if (!policy.spend_suites || (policy.spend_suites & ~DEMOS_LEDGER_KNOWN_SUITE_MASK)
+      || !policy.receive_suites || (policy.receive_suites & ~DEMOS_LEDGER_KNOWN_SUITE_MASK))
     return 1;
   memcpy(policy.ledger_id, prefix + 4, 32);
   demos_ledger_unit unit
       = { .weight = read_u64(prefix + 110), .owner.suite = prefix[118] };
   memcpy(unit.id, prefix + 46, 64);
   memcpy(unit.owner.commitment, prefix + 119, 64);
-  if (!demos_ledger_apply_transfer_id(&policy, read_u64(prefix + 38), &unit,
-                                      wire, n, reply))
+  /* The suite table fixes the allocation before any transfer bytes are read. */
+  size_t length = demos_ledger_transfer_size(unit.owner.suite);
+  if (!length) return 1;
+  uint8_t *wire = malloc(length);
+  if (!wire) return 2;
+  int ok = fread(wire, 1, length, stdin) == length && fgetc(stdin) == EOF
+           && !ferror(stdin) && demos_ledger_apply_transfer_id(
+               &policy, read_u64(prefix + 38), &unit, wire, length, reply);
+  free(wire);
+  if (ferror(stdin)) return 2;
+  if (!ok)
     return 1;
   memcpy(reply + 64, unit.id, 64);
   reply[128] = unit.owner.suite;

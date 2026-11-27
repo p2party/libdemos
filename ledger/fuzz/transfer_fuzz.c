@@ -18,8 +18,8 @@ LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
   const demos_ledger_policy policy = {
     .ledger_id = {12},
-    .spend_suites = DEMOS_LEDGER_ALLOW_ML_DSA_65 | DEMOS_LEDGER_ALLOW_SLH_DSA_SHA2_192S,
-    .receive_suites = DEMOS_LEDGER_ALLOW_ML_DSA_65 | DEMOS_LEDGER_ALLOW_SLH_DSA_SHA2_192S
+    .spend_suites = DEMOS_LEDGER_KNOWN_SUITE_MASK,
+    .receive_suites = DEMOS_LEDGER_KNOWN_SUITE_MASK
   };
   demos_ledger_unit input = {.weight = 8};
   const size_t prefix = sizeof input.id + sizeof input.owner.commitment + 1;

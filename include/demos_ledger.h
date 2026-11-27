@@ -12,10 +12,16 @@ extern "C" {
 /* Experimental transfer format version 1. All functions return 1 on success. */
 enum demos_ledger_suite {
   DEMOS_LEDGER_ML_DSA_65 = 1,
-  DEMOS_LEDGER_SLH_DSA_SHA2_192S = 2
+  DEMOS_LEDGER_SLH_DSA_SHA2_192S = 2,
+  DEMOS_LEDGER_ML_DSA_87 = 3,
+  DEMOS_LEDGER_SLH_DSA_SHAKE_256S = 4
 };
 #define DEMOS_LEDGER_ALLOW_ML_DSA_65 1u
 #define DEMOS_LEDGER_ALLOW_SLH_DSA_SHA2_192S 2u
+#define DEMOS_LEDGER_ALLOW_ML_DSA_87 4u
+#define DEMOS_LEDGER_ALLOW_SLH_DSA_SHAKE_256S 8u
+#define DEMOS_LEDGER_KNOWN_SUITE_MASK (DEMOS_LEDGER_ALLOW_ML_DSA_65 | DEMOS_LEDGER_ALLOW_SLH_DSA_SHA2_192S | \
+                                       DEMOS_LEDGER_ALLOW_ML_DSA_87 | DEMOS_LEDGER_ALLOW_SLH_DSA_SHAKE_256S)
 
 typedef struct {
   uint8_t suite;

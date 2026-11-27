@@ -16,11 +16,15 @@ typedef struct {
 static const suite_info *
 suite_for(uint8_t suite)
 {
-  static const suite_info ml = {"ML-DSA-65", 1952, 3309, DEMOS_LEDGER_ALLOW_ML_DSA_65};
-  static const suite_info slh = {"SLH-DSA-SHA2-192s", 48, 16224, DEMOS_LEDGER_ALLOW_SLH_DSA_SHA2_192S};
+  static const suite_info ml65 = {"ML-DSA-65", 1952, 3309, DEMOS_LEDGER_ALLOW_ML_DSA_65};
+  static const suite_info slh192 = {"SLH-DSA-SHA2-192s", 48, 16224, DEMOS_LEDGER_ALLOW_SLH_DSA_SHA2_192S};
+  static const suite_info ml87 = {"ML-DSA-87", 2592, 4627, DEMOS_LEDGER_ALLOW_ML_DSA_87};
+  static const suite_info slh256 = {"SLH-DSA-SHAKE-256s", 64, 29792, DEMOS_LEDGER_ALLOW_SLH_DSA_SHAKE_256S};
   switch (suite) {
-    case DEMOS_LEDGER_ML_DSA_65: return &ml;
-    case DEMOS_LEDGER_SLH_DSA_SHA2_192S: return &slh;
+    case DEMOS_LEDGER_ML_DSA_65: return &ml65;
+    case DEMOS_LEDGER_SLH_DSA_SHA2_192S: return &slh192;
+    case DEMOS_LEDGER_ML_DSA_87: return &ml87;
+    case DEMOS_LEDGER_SLH_DSA_SHAKE_256S: return &slh256;
     default: return NULL;
   }
 }
@@ -95,7 +99,7 @@ demos_ledger_make_owner(uint8_t suite, EVP_PKEY *key, const uint8_t nonce[32],
                         demos_ledger_owner *out)
 {
   const suite_info *s = suite_for(suite);
-  uint8_t pub[1952], nonce_hash[64];
+  uint8_t pub[2592], nonce_hash[64]; /* ML-DSA-87 has the largest public key. */
   if (!s || !nonce || !out || s->key_bytes > sizeof(pub) || !export_public(s, key, pub)) return 0;
   crypto_hash_sha512(nonce_hash, nonce, 32);
   owner_commitment(suite, nonce_hash, pub, s->key_bytes, out->commitment);

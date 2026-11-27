@@ -2,14 +2,25 @@
 
 Build with `cmake -S ledger -B build/ledger`, `cmake --build build/ledger`, and `ctest --test-dir build/ledger`. The library uses OpenSSL 3.5 or later and libsodium. `demos-ledger-verify --version` returns `demos-ledger-verify/1`. With no arguments the executable reads one binary request to end-of-file and writes a 193-byte reply on success. Exit 1 means the input or transfer was rejected. Exit 2 indicates an invocation or I/O failure. Each process handles one transfer.
 
-All integers use big-endian byte order. The following fields precede the exact native signed transfer bytes, which must be 5,505 bytes for ML-DSA-65 or 16,516 bytes for SLH-DSA-SHA2-192s.
+All integers use big-endian byte order. The input owner’s suite determines the exact signed transfer length. A transfer carries a 244-byte fixed body prefix, the raw public key and the signature.
+
+| Suite ID | Signature algorithm | Policy bit | Public key bytes | Signature bytes | Transfer bytes |
+| ---: | --- | ---: | ---: | ---: | ---: |
+| 1 | ML-DSA-65 | 1 | 1,952 | 3,309 | 5,505 |
+| 2 | SLH-DSA-SHA2-192s | 2 | 48 | 16,224 | 16,516 |
+| 3 | ML-DSA-87 | 4 | 2,592 | 4,627 | 7,463 |
+| 4 | SLH-DSA-SHAKE-256s | 8 | 64 | 29,792 | 30,100 |
+
+Public Testnet 1 authorizes IDs 1 and 2 (mask 3). A separate genesis can enable additional suites independently for spends and receipts. For example, spend mask 4 and receive mask 8 require ML-DSA-87 authorization of a transfer to an SLH-DSA-SHAKE-256s commitment. A spend from that commitment then requires bit 8 in the spend mask. [ML-DSA standard](https://csrc.nist.gov/pubs/fips/204/final) · [SLH-DSA standard](https://csrc.nist.gov/pubs/fips/205/final)
+
+The following fields precede the signed transfer on the verifier’s standard input.
 
 | Offset | Bytes | Field |
 | ---: | ---: | --- |
 | 0 | 4 | ASCII `DLV1` |
 | 4 | 32 | Ledger ID from trusted node configuration |
-| 36 | 1 | Permitted input suites, bitmask 1–3 |
-| 37 | 1 | Permitted output suites, bitmask 1–3 |
+| 36 | 1 | Permitted input suites, nonzero bitmask 1–15 |
+| 37 | 1 | Permitted output suites, nonzero bitmask 1–15 |
 | 38 | 8 | Proposed inclusion height |
 | 46 | 64 | Input ID from stored unspent unit |
 | 110 | 8 | Stored input weight |
@@ -19,7 +30,7 @@ All integers use big-endian byte order. The following fields precede the exact n
 
 The reply carries the 64-byte move ID, 64-byte new unit ID, one-byte recipient suite and 64-byte recipient commitment in that order. The original unit weight carries forward. The executable verifies the input with `demos_ledger_apply_transfer_id` and emits no state on refusal. The caller authenticates the input state, chooses the height, enforces lifetime commitment uniqueness and commits the spend and log entry atomically. Unit IDs, commitments and native move IDs are 64 bytes.
 
-`demos-ledger-fixture` is generated only for test builds. It emits JSON containing newly signed synthetic transfers and their public commitments, including competing spends at the maximum denomination. The ephemeral signing keys stay in that process.
+`demos-ledger-fixture` is generated only for test builds. It emits JSON containing newly signed synthetic transfers and their public commitments, including competing spends at the maximum denomination. Pass `--extended-suites` to produce a separate two-transfer chain from suite 3 to 4 to 1. The ephemeral signing keys stay in that process. With Node 26.13.1 or later available at configure time, CTest also checks signatures in both directions between Node and the native verifier, independently derives the move and output IDs, and rejects malformed or unauthorized requests.
 
 ## Offline receipt log
 
@@ -62,7 +73,8 @@ cmake -S ledger -B build/fuzz -DCMAKE_C_COMPILER=clang -DCMAKE_BUILD_TYPE=RelWit
 cmake --build build/fuzz --parallel --target ledger_transfer_fuzz demos-ledger-fixture demos-ledger-verify ledger_transfer_test
 build/fuzz/ledger_transfer_test
 build/fuzz/demos-ledger-fixture | python3 ledger/fuzz/seed_corpus.py build/fuzz/corpus build/fuzz/demos-ledger-verify
-build/fuzz/ledger_transfer_fuzz -max_len=16646 -max_total_time=45 build/fuzz/corpus
+build/fuzz/demos-ledger-fixture --extended-suites | python3 ledger/fuzz/seed_corpus.py build/fuzz/corpus build/fuzz/demos-ledger-verify
+build/fuzz/ledger_transfer_fuzz -max_len=30230 -max_total_time=45 build/fuzz/corpus
 ```
 
 The fixture generates a signed spend for each suite with ephemeral local keys. LibFuzzer mutates the public input state and signed bytes, including their lengths. On rejection the input unit must stay intact. On acceptance its weight must be conserved, its owner and ID must change, and the same transfer must fail against the new state. ASan and UBSan instrument the verifier and harness. OpenSSL and libsodium use their installed builds.

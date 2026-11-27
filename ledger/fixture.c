@@ -4,6 +4,7 @@
 #include <openssl/evp.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 static void
 field(const char *name, const uint8_t *p, size_t n, int last)
@@ -14,9 +15,54 @@ field(const char *name, const uint8_t *p, size_t n, int last)
   printf(last ? "\"}\n" : "\",");
 }
 
-int
-main(void)
+/* Keep the default two-suite fixture available to existing testnet callers. */
+static int
+extended_suites(void)
 {
+  const uint8_t ml = DEMOS_LEDGER_ML_DSA_87, slh = DEMOS_LEDGER_SLH_DSA_SHAKE_256S;
+  const size_t ml_len = demos_ledger_transfer_size(ml), slh_len = demos_ledger_transfer_size(slh);
+  const demos_ledger_policy policy = {
+    .ledger_id = {12}, .spend_suites = DEMOS_LEDGER_KNOWN_SUITE_MASK,
+    .receive_suites = DEMOS_LEDGER_KNOWN_SUITE_MASK
+  };
+  demos_ledger_unit start = {.id = {17}, .weight = 8}, unit;
+  demos_ledger_owner second, third;
+  uint8_t a[32] = {1}, b[32] = {2}, c[32] = {3};
+  EVP_PKEY *from = EVP_PKEY_Q_keygen(NULL, NULL, "ML-DSA-87");
+  EVP_PKEY *middle = EVP_PKEY_Q_keygen(NULL, NULL, "SLH-DSA-SHAKE-256s");
+  EVP_PKEY *last = EVP_PKEY_Q_keygen(NULL, NULL, "ML-DSA-65");
+  uint8_t *first = malloc(ml_len), *next = malloc(slh_len);
+  int result = 1;
+  if (!first || !next || !demos_ledger_make_owner(ml, from, a, &start.owner)
+      || !demos_ledger_make_owner(slh, middle, b, &second)
+      || !demos_ledger_make_owner(DEMOS_LEDGER_ML_DSA_65, last, c, &third)) goto done;
+  unit = start;
+  if (!demos_ledger_sign_transfer(&policy, &unit, &second, 1, from, a, first, ml_len)
+      || !demos_ledger_apply_transfer(&policy, 1, &unit, first, ml_len)
+      || !demos_ledger_sign_transfer(&policy, &unit, &third, 0, middle, b, next, slh_len)
+      || !demos_ledger_apply_transfer(&policy, 2, &unit, next, slh_len)) goto done;
+  putchar('{');
+  field("chainId", policy.ledger_id, 32, 0);
+  field("inputId", start.id, 64, 0);
+  field("commitment", start.owner.commitment, 64, 0);
+  field("first", first, ml_len, 0);
+  field("second", next, slh_len, 1);
+  result = 0;
+done:
+  free(first);
+  free(next);
+  EVP_PKEY_free(from);
+  EVP_PKEY_free(middle);
+  EVP_PKEY_free(last);
+  return result;
+}
+
+int
+main(int argc, char **argv)
+{
+  if (argc == 2 && strcmp(argv[1], "--extended-suites") == 0)
+    return extended_suites();
+  if (argc != 1) return 2;
   EVP_PKEY *ml = EVP_PKEY_Q_keygen(NULL, NULL, "ML-DSA-65");
   EVP_PKEY *slh = EVP_PKEY_Q_keygen(NULL, NULL, "SLH-DSA-SHA2-192s");
   demos_ledger_policy policy

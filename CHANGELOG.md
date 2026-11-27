@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Added ML-DSA-87 and SLH-DSA-SHAKE-256s for native spends and recipient commitments under explicitly configured network policies. Their signed transfers occupy 7,463 and 30,100 bytes. Public Testnet 1 retains its two original suites. [Wire layout and policy bits](ledger/README.md#native-transfer-verifier)
 - Implemented SHA-512 receipt roots, inclusion proofs and append-only consistency proofs over ordered native move IDs. Added an offline CLI, independent hash and proof vectors, and local sanitizer fuzzing. Clients supply roots authenticated for the intended ledger and height. [Receipt log and verification examples](ledger/README.md#offline-receipt-log)
 
 ## November 27, 2026
