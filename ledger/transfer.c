@@ -171,8 +171,9 @@ verify_signature(const suite_info *s, const uint8_t *wire)
 }
 
 int
-demos_ledger_apply_transfer(const demos_ledger_policy *policy, uint64_t height,
-                            demos_ledger_unit *current, const uint8_t *wire, size_t length)
+demos_ledger_apply_transfer_id(const demos_ledger_policy *policy, uint64_t height,
+                               demos_ledger_unit *current, const uint8_t *wire, size_t length,
+                               uint8_t move_id[64])
 {
   if (!policy || !current || !wire || length < PUBLIC_KEY) return 0;
   const uint8_t suite = current->owner.suite;
@@ -193,7 +194,15 @@ demos_ledger_apply_transfer(const demos_ledger_policy *policy, uint64_t height,
   uint8_t move_and_index[68] = {0};
   tagged_hash("move/id", wire, length, move_and_index);
   tagged_hash("unit/id", move_and_index, sizeof(move_and_index), current->id);
+  if (move_id) memcpy(move_id, move_and_index, 64);
   current->owner.suite = wire[RECEIVE_SUITE];
   memcpy(current->owner.commitment, wire + DESTINATION, 64);
   return 1;
+}
+
+int
+demos_ledger_apply_transfer(const demos_ledger_policy *policy, uint64_t height,
+                            demos_ledger_unit *current, const uint8_t *wire, size_t length)
+{
+  return demos_ledger_apply_transfer_id(policy, height, current, wire, length, NULL);
 }

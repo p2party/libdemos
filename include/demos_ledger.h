@@ -60,6 +60,13 @@ int demos_ledger_apply_transfer(const demos_ledger_policy *policy,
                                 uint64_t height, demos_ledger_unit *current,
                                 const uint8_t *wire, size_t length);
 
+/* As above, also writes the native move ID on success when move_id is
+   non-null. Its 64-byte output must be disjoint from current and wire. */
+int demos_ledger_apply_transfer_id(const demos_ledger_policy *policy,
+                                  uint64_t height, demos_ledger_unit *current,
+                                  const uint8_t *wire, size_t length,
+                                  uint8_t move_id[64]);
+
 #ifdef __cplusplus
 }
 #endif
