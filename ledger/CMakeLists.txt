@@ -20,6 +20,12 @@ if(BUILD_TESTING)
   add_executable(ledger_transfer_test transfer_test.c)
   target_link_libraries(ledger_transfer_test PRIVATE demos_ledger)
   add_test(NAME ledger_transfer COMMAND ledger_transfer_test)
+  find_package(Python3 COMPONENTS Interpreter)
+  if(Python3_Interpreter_FOUND)
+    add_test(NAME ledger_verifier_status
+      COMMAND Python3::Interpreter "${CMAKE_CURRENT_SOURCE_DIR}/verify_status_test.py"
+              $<TARGET_FILE:demos-ledger-verify> $<TARGET_FILE:demos-ledger-fixture>)
+  endif()
   add_test(NAME ledger_cli_version COMMAND demos-ledger-verify --version)
   set_tests_properties(ledger_cli_version PROPERTIES PASS_REGULAR_EXPRESSION "demos-ledger-verify/1")
   add_test(NAME ledger_cli_empty_input COMMAND demos-ledger-verify)

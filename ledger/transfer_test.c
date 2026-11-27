@@ -50,6 +50,13 @@ main(void)
   CHECK(!demos_ledger_sign_transfer(&policy, &state, &bob, 99, slh, n1, first, ml_n));
   CHECK(!demos_ledger_sign_transfer(&policy, &state, &alice, 99, ml, n1, first, ml_n));
   CHECK(demos_ledger_sign_transfer(&policy, &state, &bob, 99, ml, n1, first, ml_n));
+  /* A local provider outage preserves the input and the legacy boolean API. */
+  CHECK(EVP_set_default_properties(NULL, "provider=missing") == 1);
+  CHECK(demos_ledger_apply_transfer_status(&policy, 75, &state, first, ml_n, NULL) == -1);
+  reject(&policy, 75, &initial, first, ml_n);
+  CHECK(memcmp(state.id, initial.id, sizeof(state.id)) == 0 &&
+        memcmp(state.owner.commitment, alice.commitment, 64) == 0);
+  CHECK(EVP_set_default_properties(NULL, NULL) == 1);
   demos_ledger_policy other = policy;
   other.ledger_id[5] ^= 1;
   reject(&other, 75, &initial, first, ml_n);

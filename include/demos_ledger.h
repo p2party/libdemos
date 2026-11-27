@@ -67,6 +67,14 @@ int demos_ledger_apply_transfer_id(const demos_ledger_policy *policy,
                                   const uint8_t *wire, size_t length,
                                   uint8_t move_id[64]);
 
+/* For consensus callers, the detailed result distinguishes a rejected input
+   (0) from a local crypto provider or allocation error (-1). Success (1)
+   has the same outputs as demos_ledger_apply_transfer_id. */
+int demos_ledger_apply_transfer_status(const demos_ledger_policy *policy,
+                                      uint64_t height, demos_ledger_unit *current,
+                                      const uint8_t *wire, size_t length,
+                                      uint8_t move_id[64]);
+
 #ifdef __cplusplus
 }
 #endif

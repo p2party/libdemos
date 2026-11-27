@@ -23,9 +23,9 @@ main(int argc, char **argv)
   }
   if (argc != 1) return 2;
   uint8_t prefix[183], wire[16516 + 1], reply[193];
-  if (fread(prefix, 1, sizeof prefix, stdin) != sizeof prefix
-      || memcmp(prefix, "DLV1", 4) != 0)
-    return 1;
+  if (fread(prefix, 1, sizeof prefix, stdin) != sizeof prefix)
+    return ferror(stdin) ? 2 : 1;
+  if (memcmp(prefix, "DLV1", 4) != 0) return 1;
   size_t n = fread(wire, 1, sizeof wire, stdin);
   if (ferror(stdin)) return 2;
   if (!feof(stdin) || n == sizeof wire) return 1;
@@ -39,9 +39,9 @@ main(int argc, char **argv)
       = { .weight = read_u64(prefix + 110), .owner.suite = prefix[118] };
   memcpy(unit.id, prefix + 46, 64);
   memcpy(unit.owner.commitment, prefix + 119, 64);
-  if (!demos_ledger_apply_transfer_id(&policy, read_u64(prefix + 38), &unit,
-                                      wire, n, reply))
-    return 1;
+  const int status = demos_ledger_apply_transfer_status(
+      &policy, read_u64(prefix + 38), &unit, wire, n, reply);
+  if (status != 1) return status < 0 ? 2 : 1;
   memcpy(reply + 64, unit.id, 64);
   reply[128] = unit.owner.suite;
   memcpy(reply + 129, unit.owner.commitment, 64);

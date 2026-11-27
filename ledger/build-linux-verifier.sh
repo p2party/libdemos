@@ -25,6 +25,8 @@ if grep -q INTERP "$build/program-headers" || grep -q NEEDED "$build/dynamic"; t
 fi
 test "$("$build/demos-ledger-verify" --version)" = demos-ledger-verify/1
 if "$build/demos-ledger-verify" </dev/null; then exit 1; fi
+cc "${flags[@]}" "$src/transfer.c" "$src/fixture.c" "${libraries[@]}" -o "$build/fixture"
+python3 "$src/verify_status_test.py" "$build/demos-ledger-verify" "$build/fixture"
 install -m 0755 "$build/demos-ledger-verify" "$out/demos-ledger-verify"
 (
   cd "$out"
