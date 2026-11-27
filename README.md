@@ -49,7 +49,9 @@ git submodule update --init --recursive
 source ./build.sh
 ```
 
-Linux CI runs four native test executables covering commitments, Shamir sharing, cryptography and Merkle proofs. A coverage-guided fuzz test compiles the transfer verifier with AddressSanitizer and UndefinedBehaviorSanitizer and exercises both signature suites. [Run the fuzzer](ledger/README.md#fuzz-the-transfer-verifier) The ledger module also has its own transfer and command-line tests. [Native tests](__tests__) · [Ledger tests](ledger/transfer_test.c)
+Linux CI runs four native test executables covering commitments, Shamir sharing, cryptography and Merkle proofs. The ledger module also has its own transfer and command-line tests. [Native tests](__tests__) · [Ledger tests](ledger/transfer_test.c)
+
+A local coverage-guided fuzz test compiles the transfer verifier with AddressSanitizer and UndefinedBehaviorSanitizer and exercises both signature suites. [Run the fuzzer](ledger/README.md#fuzz-the-transfer-verifier)
 
 ## License
 

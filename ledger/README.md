@@ -35,4 +35,4 @@ build/fuzz/ledger_transfer_fuzz -max_len=16646 -max_total_time=45 build/fuzz/cor
 
 The fixture generates a signed spend for each suite with ephemeral local keys. LibFuzzer mutates the public input state and signed bytes, including their lengths. On rejection the input unit must stay intact. On acceptance its weight must be conserved, its owner and ID must change, and the same transfer must fail against the new state. ASan and UBSan instrument the verifier and harness. OpenSSL and libsodium use their installed builds.
 
-CI runs 45 seconds on relevant pull requests and pushes to master, and five minutes weekly. Keep the generated corpus for longer local runs. The fuzzer runs entirely offline after the build dependencies are installed.
+The fuzzer is opt-in and runs locally. Keep the generated corpus for longer runs and adjust `-max_total_time` for the time available. The executable works offline after the build dependencies are installed.
