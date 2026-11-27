@@ -1,0 +1,29 @@
+name: Linux testnet verifier
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'include/demos_ledger.h'
+      - 'ledger/**'
+      - '.github/workflows/ledger-verifier.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verifier:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install the distribution crypto development packages
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y --no-install-recommends libssl-dev libsodium-dev pkg-config
+      - name: Build and exercise the portable verifier
+        run: ledger/build-linux-verifier.sh "$RUNNER_TEMP/ledger-verifier"
+      - name: Retain the executable and its checked digest
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ledger-verifier-linux-amd64
+          path: ${{ runner.temp }}/ledger-verifier
+          if-no-files-found: error
