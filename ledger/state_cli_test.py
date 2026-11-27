@@ -1,6 +1,9 @@
 """Reference state tree, adversarial encodings and signed native transfers."""
 from hashlib import sha512
 import json
+import os
+from pathlib import Path
+import tempfile
 import subprocess
 import sys
 import unittest
@@ -152,6 +155,20 @@ class StateTree(unittest.TestCase):
             prefix = (b"DLV1" + raw("chainId") + b"\x03\x03" + height.to_bytes(8, "big")
                       + unit + wire[98:106] + wire[114:115] + owner)
             verified = run(VERIFY, [], prefix + wire)
+            if height == 1:
+                with tempfile.TemporaryDirectory() as d:
+                    # Disable the local signature provider for a known-valid
+                    # spend, while keeping the wire and ledger inputs identical.
+                    cfg = Path(d, "openssl.cnf")
+                    cfg.write_text("openssl_conf=init\n[init]\nproviders=providers\n"
+                                   "[providers]\nnull=empty\n[empty]\nactivate=1\n")
+                    failure = subprocess.run([VERIFY], input=prefix + wire, capture_output=True,
+                                             env={**os.environ, "OPENSSL_CONF": str(cfg)})
+                    self.assertEqual((failure.returncode, failure.stdout), (2, b""))
+                invalid = bytearray(wire)
+                invalid[-1] ^= 1
+                rejected = subprocess.run([VERIFY], input=prefix + invalid, capture_output=True)
+                self.assertEqual((rejected.returncode, rejected.stdout), (1, b""))
             move, output, recipient = verified[:64], verified[64:128], verified[129:]
             self.assertEqual(len(verified), 193)
             self.assertEqual(move, tag("move/id", wire))

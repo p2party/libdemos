@@ -32,6 +32,8 @@ The reply carries the 64-byte move ID, 64-byte new unit ID, one-byte recipient s
 
 `demos-ledger-fixture` is generated only for test builds. It emits JSON containing newly signed synthetic transfers and their public commitments, including competing spends at the maximum denomination. Pass `--extended-suites` to produce a separate two-transfer chain from suite 3 to 4 to 1. The ephemeral signing keys stay in that process. With Node 26.13.1 or later available at configure time, CTest also checks signatures in both directions between Node and the native verifier, independently derives the move and output IDs, and rejects malformed or unauthorized requests.
 
+The verifier returns status 1 for a rejected wire and status 2 for a local failure, including a missing OpenSSL signature provider. A validator aborts replay on status 2. The detailed C API supplies this distinction through `demos_ledger_apply_transfer_status`.
+
 ## Offline receipt log
 
 `demos-ledger-log` reads receipt move IDs in ascending ledger height. Height 1 is index 0. Genesis contributes zero leaves. The leaf digest is `SHA512(0x00 || move_id)`, where `move_id` is the 64-byte binary native identifier. The digest of an internal node is `SHA512(0x01 || left || right)`. The empty root is SHA-512 of zero bytes. For an uneven tree, split at the largest power of two strictly smaller than its size. The existing voting Merkle functions have their own encoding. [RFC 9162 tree and proof construction](https://www.rfc-editor.org/rfc/rfc9162.html#section-2.1) · [C API](../include/demos_ledger_log.h)

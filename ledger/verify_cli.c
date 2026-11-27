@@ -24,9 +24,9 @@ main(int argc, char **argv)
   }
   if (argc != 1) return 2;
   uint8_t prefix[183], reply[193];
-  if (fread(prefix, 1, sizeof prefix, stdin) != sizeof prefix
-      || memcmp(prefix, "DLV1", 4) != 0)
-    return 1;
+  if (fread(prefix, 1, sizeof prefix, stdin) != sizeof prefix)
+    return ferror(stdin) ? 2 : 1;
+  if (memcmp(prefix, "DLV1", 4) != 0) return 1;
   demos_ledger_policy policy
       = { .spend_suites = prefix[36], .receive_suites = prefix[37] };
   if (!policy.spend_suites || (policy.spend_suites & ~DEMOS_LEDGER_KNOWN_SUITE_MASK)
@@ -42,11 +42,11 @@ main(int argc, char **argv)
   if (!length) return 1;
   uint8_t *wire = malloc(length);
   if (!wire) return 2;
-  int ok = fread(wire, 1, length, stdin) == length && fgetc(stdin) == EOF
-           && !ferror(stdin) && demos_ledger_apply_transfer_id(
-               &policy, read_u64(prefix + 38), &unit, wire, length, reply);
+  int ok = 0;
+  if (fread(wire, 1, length, stdin) == length && fgetc(stdin) == EOF && !ferror(stdin))
+    ok = demos_ledger_apply_transfer_status(&policy, read_u64(prefix + 38), &unit, wire, length, reply);
   free(wire);
-  if (ferror(stdin)) return 2;
+  if (ferror(stdin) || ok < 0) return 2;
   if (!ok)
     return 1;
   memcpy(reply + 64, unit.id, 64);

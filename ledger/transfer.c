@@ -154,17 +154,19 @@ verify_signature(const suite_info *s, const uint8_t *wire)
   tagged_hash("move/body", wire, body_len, digest);
   EVP_PKEY *key = EVP_PKEY_new_raw_public_key_ex(NULL, s->name, NULL, wire + PUBLIC_KEY, s->key_bytes);
   EVP_MD_CTX *ctx = EVP_MD_CTX_new();
-  int ok = key && ctx && EVP_DigestVerifyInit(ctx, NULL, NULL, NULL, key) == 1 &&
-           EVP_DigestVerify(ctx, wire + body_len, s->sig_bytes, digest, sizeof(digest)) == 1;
+  int ok = -1;
+  if (key && ctx && EVP_DigestVerifyInit(ctx, NULL, NULL, NULL, key) == 1)
+    ok = EVP_DigestVerify(ctx, wire + body_len, s->sig_bytes, digest, sizeof(digest));
   EVP_MD_CTX_free(ctx);
   EVP_PKEY_free(key);
-  return ok;
+  if (ok == 0 || ok == 1) return ok;
+  return -1;
 }
 
 int
-demos_ledger_apply_transfer_id(const demos_ledger_policy *policy, uint64_t height,
-                               demos_ledger_unit *current, const uint8_t *wire, size_t length,
-                               uint8_t move_id[64])
+demos_ledger_apply_transfer_status(const demos_ledger_policy *policy, uint64_t height,
+                                   demos_ledger_unit *current, const uint8_t *wire, size_t length,
+                                   uint8_t move_id[64])
 {
   if (!policy || !current || !wire || length < PUBLIC_KEY) return 0;
   const uint8_t suite = current->owner.suite;
@@ -179,7 +181,9 @@ demos_ledger_apply_transfer_id(const demos_ledger_policy *policy, uint64_t heigh
   uint8_t commitment[64];
   owner_commitment(suite, wire + NONCE_HASH, wire + PUBLIC_KEY, s->key_bytes, commitment);
   if (memcmp(commitment, current->owner.commitment, 64) != 0 ||
-      memcmp(commitment, wire + DESTINATION, 64) == 0 || !verify_signature(s, wire)) return 0;
+      memcmp(commitment, wire + DESTINATION, 64) == 0) return 0;
+  const int verification = verify_signature(s, wire);
+  if (verification != 1) return verification;
 
   /* A transfer has exactly one output, at index zero (uint32 big endian). */
   uint8_t move_and_index[68] = {0};
@@ -189,6 +193,14 @@ demos_ledger_apply_transfer_id(const demos_ledger_policy *policy, uint64_t heigh
   current->owner.suite = wire[RECEIVE_SUITE];
   memcpy(current->owner.commitment, wire + DESTINATION, 64);
   return 1;
+}
+
+int
+demos_ledger_apply_transfer_id(const demos_ledger_policy *policy, uint64_t height,
+                               demos_ledger_unit *current, const uint8_t *wire, size_t length,
+                               uint8_t move_id[64])
+{
+  return demos_ledger_apply_transfer_status(policy, height, current, wire, length, move_id) == 1;
 }
 
 int
