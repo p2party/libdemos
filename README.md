@@ -14,6 +14,8 @@ Build the ledger module with CMake, OpenSSL 3.5 or newer and libsodium. The Linu
 
 The development branch also includes an offline SHA-512 receipt log. Given a trusted checkpoint, a client can verify that a move appears at a specific position or that a newer receipt history extends an earlier one. The C API and command-line tool use the tree shape and proofs from RFC 9162. [Receipt log format and examples](ledger/README.md#offline-receipt-log)
 
+The offline state verifier proves membership and absence for spent units, applied moves and used owner commitments. It checks transitions from a trusted SHA-512 state root using a compact sparse Merkle proof. [State proof format and examples](ledger/README.md#offline-state-proofs)
+
 ## Introduction
 
 This library relies heavily on Ed25519 public-secret key pairs and their related operations, which are provided by [libsodium](https://github.com/jedisct1/libsodium), which is a battle-tested project.

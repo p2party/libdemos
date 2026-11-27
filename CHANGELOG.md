@@ -4,6 +4,7 @@
 
 - Added ML-DSA-87 and SLH-DSA-SHAKE-256s for native spends and recipient commitments under explicitly configured network policies. Their signed transfers occupy 7,463 and 30,100 bytes. Public Testnet 1 retains its two original suites. [Wire layout and policy bits](ledger/README.md#native-transfer-verifier)
 - Implemented SHA-512 receipt roots, inclusion proofs and append-only consistency proofs over ordered native move IDs. Added an offline CLI, independent hash and proof vectors, and local sanitizer fuzzing. Clients supply roots authenticated for the intended ledger and height. [Receipt log and verification examples](ledger/README.md#offline-receipt-log)
+- Added offline SHA-512 membership, absence and insertion proofs for spent units, applied moves and used owner commitments. Tests compare canonical witnesses with an independent implementation and verify state transitions for native signed transfers. [State proof format](ledger/README.md#offline-state-proofs)
 
 ## November 27, 2026
 
@@ -18,4 +19,4 @@
 
 Testnet 1 uses one validating node, fixed genesis issuance and whole-unit transfers. Public testing covers cross-suite transfers, receipt recovery and double spends. Further work includes independently operated validators and proof-of-stake ordering, suite retirement and key recovery, denomination splitting and joining, and review before a monetary network is proposed. The separate voting-ledger design also requires delegation and reclaim rules. [Testnet roadmap](https://github.com/p2party/p2party-js/blob/master/docs/testnet-1.md)
 
-The receipt log commits to transfer history. The next proof module in the design would commit to spent-unit state and let a client verify membership or absence against a state root.
+The next integration step is to authenticate both the receipt root and the spent-state root in independently verified validator checkpoints.
