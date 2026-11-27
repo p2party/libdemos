@@ -261,3 +261,9 @@ target_compile_definitions(${PROJECT_NAME}
 )
 
 add_subdirectory(./__tests__/)
+
+option(DEMOS_BUILD_LEDGER "Build the native post-quantum ledger module" OFF)
+if(DEMOS_BUILD_LEDGER)
+  include(CTest)
+  add_subdirectory(ledger)
+endif()
