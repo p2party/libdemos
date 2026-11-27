@@ -1,5 +1,9 @@
 # Release changes
 
+## Unreleased
+
+- Implemented SHA-512 receipt roots, inclusion proofs and append-only consistency proofs over ordered native move IDs. Added an offline CLI, independent hash and proof vectors, and local sanitizer fuzzing. Clients supply roots authenticated for the intended ledger and height. [Receipt log and verification examples](ledger/README.md#offline-receipt-log)
+
 ## November 27, 2026
 
 - Fixed signature verification for a voting commitment proof. A proof now has to authenticate the current commitment. The original voting API uses Ed25519. [Fix](https://github.com/ondemos/libdemos/commit/e116d43)
@@ -12,3 +16,5 @@
 ## Roadmap
 
 Testnet 1 uses one validating node, fixed genesis issuance and whole-unit transfers. Public testing covers cross-suite transfers, receipt recovery and double spends. Further work includes independently operated validators and proof-of-stake ordering, suite retirement and key recovery, denomination splitting and joining, and review before a monetary network is proposed. The separate voting-ledger design also requires delegation and reclaim rules. [Testnet roadmap](https://github.com/p2party/p2party-js/blob/master/docs/testnet-1.md)
+
+The receipt log commits to transfer history. The next proof module in the design would commit to spent-unit state and let a client verify membership or absence against a state root.

@@ -12,6 +12,8 @@ The optional C17 ledger library verifies native transfers for P2Party Testnet 1.
 
 Build the ledger module with CMake, OpenSSL 3.5 or newer and libsodium. The Linux packaging job tests both suites and publishes a statically linked verifier with its SHA-256 and source revision. The public development network uses valueless test units. Its first grant funded one unit that the native verifier accepted with ML-DSA-65 at height 2 and SLH-DSA-SHA2-192s at height 3. [Verifier format and build instructions](ledger/README.md) · [Testnet access and grants](https://github.com/p2party/p2party-js/blob/master/docs/testnet-1.md) · [Release changes and roadmap](CHANGELOG.md)
 
+The development branch also includes an offline SHA-512 receipt log. Given a trusted checkpoint, a client can verify that a move appears at a specific position or that a newer receipt history extends an earlier one. The C API and command-line tool use the tree shape and proofs from RFC 9162. [Receipt log format and examples](ledger/README.md#offline-receipt-log)
+
 ## Introduction
 
 This library relies heavily on Ed25519 public-secret key pairs and their related operations, which are provided by [libsodium](https://github.com/jedisct1/libsodium), which is a battle-tested project.

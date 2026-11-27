@@ -21,6 +21,38 @@ The reply carries the 64-byte move ID, 64-byte new unit ID, one-byte recipient s
 
 `demos-ledger-fixture` is generated only for test builds. It emits JSON containing newly signed synthetic transfers and their public commitments, including competing spends at the maximum denomination. The ephemeral signing keys stay in that process.
 
+## Offline receipt log
+
+`demos-ledger-log` reads receipt move IDs in ascending ledger height. Height 1 is index 0. Genesis contributes zero leaves. The leaf digest is `SHA512(0x00 || move_id)`, where `move_id` is the 64-byte binary native identifier. The digest of an internal node is `SHA512(0x01 || left || right)`. The empty root is SHA-512 of zero bytes. For an uneven tree, split at the largest power of two strictly smaller than its size. The existing voting Merkle functions have their own encoding. [RFC 9162 tree and proof construction](https://www.rfc-editor.org/rfc/rfc9162.html#section-2.1) · [C API](../include/demos_ledger_log.h)
+
+IDs, roots and proof nodes use `0x` followed by 128 lowercase hex digits. On stdin and stdout each record ends with one LF. An empty file encodes zero records. Sizes and zero-based indices on the command line use unsigned 64-bit lowercase hex quantities such as `0x0` or `0x10`, with no leading zeroes. Inclusion and consistency proofs contain only the required sibling or subtree hashes in RFC order, beginning at the lowest level. The position and sizes determine orientation.
+
+For an export containing three receipts, these commands calculate the root and create proofs for the third receipt and the prefix of length two.
+
+```sh
+build/ledger/demos-ledger-log root < receipt-ids.txt
+build/ledger/demos-ledger-log inclusion 0x2 < receipt-ids.txt > third.proof
+build/ledger/demos-ledger-log consistency 0x2 < receipt-ids.txt > extension.proof
+```
+
+Supply the expected move ID and the authenticated roots at heights two and three in the variables below. The verifier can run offline with only the proof and these public inputs.
+
+```sh
+build/ledger/demos-ledger-log verify-inclusion 0x3 0x2 "$MOVE_ID" "$ROOT_AT_3" < third.proof
+build/ledger/demos-ledger-log verify-consistency 0x2 0x3 "$ROOT_AT_2" "$ROOT_AT_3" < extension.proof
+```
+
+Successful verification prints `ok`. Exit 1 rejects invalid input or a failed proof. Exit 2 reports an invocation, allocation or I/O failure. The local CLI accepts up to 1,048,576 receipts for proof generation. The C API uses an in-memory array and logarithmic stack space. Proof verification accepts any unsigned 64-bit size with up to 65 hashes. For equal sizes, consistency requires equal roots and an empty proof. For a zero-length prefix, the verifier checks the empty root and an empty proof. Every authenticated history contains that prefix.
+
+A checkpoint authenticates a root and size for a particular chain and genesis. Inclusion establishes the position of the identified move. Consistency establishes that the earlier history is a prefix of the later one. Transfer validity requires replay of the ledger rules. Current spendability requires a trusted state or a state proof.
+
+CTest runs C proof and boundary checks. With Python 3 installed at configure time it also compares the CLI with an independent SHA-512 implementation, including a 65-node proof for a tree of size `0xffffffffffffffff`. To fuzz generated proofs, configure the sanitizer build below, then run
+
+```sh
+cmake --build build/fuzz --target ledger_log_fuzz
+build/fuzz/ledger_log_fuzz -max_len=256 -max_total_time=30
+```
+
 ## Fuzz the transfer verifier
 
 Use Clang with libFuzzer and its sanitizer runtimes, CMake, Python 3.9 or later, OpenSSL 3.5 or later and libsodium. From the repository root, run
