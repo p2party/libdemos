@@ -13,7 +13,7 @@ restore_secret(const unsigned int SHARES_LEN, const unsigned int SECRET_LEN,
   if (SHARES_LEN < 2) return -1;
   if (SHARES_LEN > FIELD - 1) return -2;
 
-  uint8_t(*points)[2] = malloc(sizeof(uint8_t[SHARES_LEN][2]));
+  uint8_t (*points)[2] = malloc(sizeof(uint8_t[SHARES_LEN][2]));
   if (points == NULL) return -3;
 
   for (i = 0; i < SECRET_LEN; i++)

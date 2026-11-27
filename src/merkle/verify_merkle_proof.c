@@ -30,7 +30,7 @@ verify_merkle_proof(
     }
   }
 
-  uint8_t(*concat_hashes)[crypto_hash_sha512_BYTES]
+  uint8_t (*concat_hashes)[crypto_hash_sha512_BYTES]
       = malloc(sizeof(uint8_t[2][crypto_hash_sha512_BYTES]));
   if (concat_hashes == NULL) return -1;
 
